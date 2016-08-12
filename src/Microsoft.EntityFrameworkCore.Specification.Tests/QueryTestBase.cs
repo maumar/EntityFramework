@@ -5832,9 +5832,92 @@ namespace Microsoft.EntityFrameworkCore.Specification.Tests
             using (var context = CreateContext())
             {
                 var query = context.Customers.OrderBy(c => c.CustomerID)
-                    .Select(c => new { c.CustomerID, Value = c.CustomerID == "ALFKI" & c.CustomerID == "ANATR" | c.CustomerID == "ANTON"}).ToList();
+                    .Select(c => new { c.CustomerID, Value = c.CustomerID == "ALFKI" & c.CustomerID == "ANATR" | c.CustomerID == "ANTON" }).ToList();
 
                 Assert.All(query.Where(c => c.CustomerID != "ANTON"), t => Assert.Equal(false, t.Value));
+            }
+        }
+
+        [ConditionalFact]
+        public virtual void Parameter_extraction_short_circuits_1()
+        {
+            DateTime? dateFilter = new DateTime(1996, 7, 15);
+
+            AssertQuery<Order>(os =>
+                os.Where(o => (o.OrderID < 10400)
+                    && ((dateFilter == null)
+                        || (o.OrderDate.HasValue
+                            && o.OrderDate.Value.Month == dateFilter.Value.Month
+                            && o.OrderDate.Value.Year == dateFilter.Value.Year))),
+                entryCount: 22);
+
+            dateFilter = null;
+
+            AssertQuery<Order>(os =>
+                os.Where(o => (o.OrderID < 10400)
+                    && ((dateFilter == null)
+                        || (o.OrderDate.HasValue
+                            && o.OrderDate.Value.Month == dateFilter.Value.Month
+                            && o.OrderDate.Value.Year == dateFilter.Value.Year))),
+                entryCount: 152);
+        }
+
+        [ConditionalFact]
+        public virtual void Parameter_extraction_short_circuits_2()
+        {
+            DateTime? dateFilter = new DateTime(1996, 7, 15);
+
+            AssertQuery<Order>(os =>
+                os.Where(o => (o.OrderID < 10400)
+                    && (dateFilter.HasValue)
+                    && (o.OrderDate.HasValue
+                        && o.OrderDate.Value.Month == dateFilter.Value.Month
+                        && o.OrderDate.Value.Year == dateFilter.Value.Year)),
+                entryCount: 22);
+
+            dateFilter = null;
+
+            AssertQuery<Order>(os =>
+                os.Where(o => (o.OrderID < 10400)
+                    && (dateFilter.HasValue)
+                    && (o.OrderDate.HasValue
+                        && o.OrderDate.Value.Month == dateFilter.Value.Month
+                        && o.OrderDate.Value.Year == dateFilter.Value.Year)));
+        }
+
+        [ConditionalFact]
+        public virtual void Parameter_extraction_short_circuits_3()
+        {
+            DateTime? dateFilter = new DateTime(1996, 7, 15);
+
+            AssertQuery<Order>(os =>
+                os.Where(o => (o.OrderID < 10400)
+                    || (dateFilter == null)
+                    || (o.OrderDate.HasValue
+                        && o.OrderDate.Value.Month == dateFilter.Value.Month
+                        && o.OrderDate.Value.Year == dateFilter.Value.Year)),
+                entryCount: 152);
+
+            dateFilter = null;
+
+            AssertQuery<Order>(os =>
+                os.Where(o => (o.OrderID < 10400)
+                    || (dateFilter == null)
+                    || (o.OrderDate.HasValue
+                        && o.OrderDate.Value.Month == dateFilter.Value.Month
+                        && o.OrderDate.Value.Year == dateFilter.Value.Year)),
+                entryCount: 830);
+        }
+
+        [ConditionalFact]
+        public virtual void Parameter_extraction_can_throw_exception_from_user_code()
+        {
+            using (var context = CreateContext())
+            {
+                var customer = new Customer();
+
+                Assert.Throws<InvalidOperationException>(() =>
+                    context.Customers.Where(c => Equals(c.Orders.First(), customer.Orders.First())).ToList());
             }
         }
 
