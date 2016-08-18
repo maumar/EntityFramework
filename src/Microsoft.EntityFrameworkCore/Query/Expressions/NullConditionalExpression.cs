@@ -89,11 +89,12 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
                 Block(
                     new[] { nullableCaller, result },
                     Assign(nullableCaller, NullableCaller),
-                    Assign(result, Default(_type)),
-                    IfThen(
-                        NotEqual(nullableCaller, Default(nullableCallerType)),
-                        Assign(result, operation)
-                    ),
+                    Assign(
+                        result,
+                        Condition(
+                            NotEqual(nullableCaller, Default(nullableCallerType)),
+                            operation,
+                            Default(_type))),
                     result
                 );
 
