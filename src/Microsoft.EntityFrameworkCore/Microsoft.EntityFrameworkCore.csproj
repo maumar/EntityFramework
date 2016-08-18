@@ -32,6 +32,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
   </ItemGroup>
   <ItemGroup>
@@ -242,6 +243,7 @@
     <Compile Include="Metadata\Conventions\Internal\IIndexUniquenessConvention.cs" />
     <Compile Include="Metadata\Conventions\Internal\IPropertyFieldChangedConvention.cs" />
     <Compile Include="Metadata\PropertyAccessMode.cs" />
+    <Compile Include="Query\Expressions\NullConditionalExpression.cs" />
     <Compile Include="Storage\DatabaseProvider.cs" />
     <Compile Include="WarningBehavior.cs" />
     <Compile Include="Internal\WarningsConfiguration.cs" />

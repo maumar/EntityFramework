@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore.Query.Expressions;
 using Microsoft.EntityFrameworkCore.Specification.Tests.TestModels.ComplexNavigationsModel;
 using Microsoft.EntityFrameworkCore.Specification.Tests.TestUtilities.Xunit;
 using Xunit;
@@ -37,7 +39,7 @@ namespace Microsoft.EntityFrameworkCore.Specification.Tests
 
         public void Dispose() => TestStore.Dispose();
 
-        [ConditionalFact] 
+        [ConditionalFact]
         public virtual void Entity_equality_empty()
         {
             using (var context = CreateContext())
@@ -49,7 +51,7 @@ namespace Microsoft.EntityFrameworkCore.Specification.Tests
             }
         }
 
-        [ConditionalFact] 
+        [ConditionalFact]
         public virtual void Key_equality_when_sentinel_ef_property()
         {
             using (var context = CreateContext())
@@ -496,7 +498,7 @@ namespace Microsoft.EntityFrameworkCore.Specification.Tests
         }
 
         // issue #5613
-        ////[ConditionalFact]
+        [ConditionalFact]
         public virtual void Optional_navigation_inside_method_call_translated_to_join()
         {
             using (var context = CreateContext())
@@ -509,14 +511,15 @@ namespace Microsoft.EntityFrameworkCore.Specification.Tests
             }
         }
 
+
         // issue #5613
-        ////[ConditionalFact]
-        public virtual void Optional_navigation_inside_nested_method_call_translated_to_join()
+        [ConditionalFact]
+        public virtual void Optional_navigation_inside_property_method_translated_to_join()
         {
             using (var context = CreateContext())
             {
                 var query = from e1 in context.LevelOne
-                            where e1.OneToOne_Optional_FK.Name.ToUpper().StartsWith("L")
+                            where EF.Property<string>(EF.Property<Level2>(e1, "OneToOne_Optional_FK"), "Name") == "L2 01"
                             select e1;
 
                 var result = query.ToList();
@@ -524,7 +527,37 @@ namespace Microsoft.EntityFrameworkCore.Specification.Tests
         }
 
         // issue #5613
-        ////[ConditionalFact]
+        [ConditionalFact]
+        public virtual void Optional_navigation_inside_nested_method_call_translated_to_join()
+        {
+            List<int> expected;
+            using (var context = CreateContext())
+            {
+                expected = (from e1 in context.LevelOne.Include(e => e.OneToOne_Optional_FK).ToList()
+                            where e1.OneToOne_Optional_FK != null && e1.OneToOne_Optional_FK.Name.ToUpper().StartsWith("L")
+                            select e1.Id).ToList();
+            }
+
+            ClearLog();
+
+            using (var context = CreateContext())
+            {
+                var query = from e1 in context.LevelOne
+                            where e1.OneToOne_Optional_FK.Name.ToUpper().StartsWith("L")
+                            select e1;
+
+                var result = query.ToList();
+
+                Assert.Equal(expected.Count, result.Count);
+                foreach (var resultItem in result)
+                {
+                    Assert.True(expected.Contains(resultItem.Id));
+                }
+            }
+        }
+
+        // issue #5613
+        [ConditionalFact]
         public virtual void Optional_navigation_inside_method_call_translated_to_join_keeps_original_nullability()
         {
             using (var context = CreateContext())
@@ -539,7 +572,7 @@ namespace Microsoft.EntityFrameworkCore.Specification.Tests
 
 
         // issue #6261
-        ////[ConditionalFact]
+        [ConditionalFact]
         public virtual void Optional_navigation_inside_nested_method_call_translated_to_join_keeps_original_nullability()
         {
             using (var context = CreateContext())
@@ -553,7 +586,7 @@ namespace Microsoft.EntityFrameworkCore.Specification.Tests
         }
 
         // issue #6261
-        ////[ConditionalFact]
+        [ConditionalFact]
         public virtual void Optional_navigation_inside_nested_method_call_translated_to_join_keeps_original_nullability_also_for_arguments()
         {
             using (var context = CreateContext())
